@@ -136,9 +136,11 @@ public class DitherProj {
         BufferedImage dithered = floydSteinbergDither(grey);
 
         label.setText("Image Loaded (B&W): " + width + "x" + height);
+
         JFrame imageFrame = new JFrame("B&W Preview - " + droppedFile.getName());
         imageFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         imageFrame.getContentPane().setBackground(Color.BLACK);
+        imageFrame.setLayout(new java.awt.BorderLayout());
 
         int maxWidth = 800, maxHeight = 600;
         double scale = Math.min(1.0, Math.min((double) maxWidth / width, (double) maxHeight / height));
@@ -146,7 +148,11 @@ public class DitherProj {
 
         JLabel imageLabel = new JLabel(new ImageIcon(scaledImage));
         imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        imageFrame.getContentPane().add(imageLabel);
+
+        JButton saveBtn = SaveButton(dithered, droppedFile.getName());
+
+        imageFrame.getContentPane().add(imageLabel, java.awt.BorderLayout.CENTER);
+        imageFrame.getContentPane().add(saveBtn, java.awt.BorderLayout.SOUTH);
         imageFrame.pack();
         imageFrame.setLocationRelativeTo(null);
         imageFrame.setVisible(true);
@@ -163,36 +169,24 @@ public class DitherProj {
         label.setText("Image Loaded: " + width + "x" + height);
 
         BufferedImage ditherred = floydSteinbergDither(image);
-
-        // Create a new window for the image
         JFrame imageFrame = new JFrame("Image Preview - " + droppedFile.getName());
         imageFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         imageFrame.getContentPane().setBackground(Color.BLACK);
-        //save image logic
-        JButton saveBtn = new JButton("Save Image");
+        imageFrame.setLayout(new java.awt.BorderLayout());
 
-        // Scale the image to fit within a reasonable window size
-        int maxWidth = 800;
-        int maxHeight = 600;
+        int maxWidth = 800, maxHeight = 600;
+        double scale = Math.min(1.0, Math.min((double) maxWidth / width, (double) maxHeight / height));
+        Image scaledImage = ditherred.getScaledInstance((int) (width * scale), (int) (height * scale), Image.SCALE_SMOOTH);
 
-        double scaleX = (double) maxWidth / width;
-        double scaleY = (double) maxHeight / height;
-        double scale = Math.min(1.0, Math.min(scaleX, scaleY)); // Don't upscale small images
-
-        int scaledWidth = (int) (width * scale);
-        int scaledHeight = (int) (height * scale);
-
-        Image scaledImage = ditherred.getScaledInstance(scaledWidth, scaledHeight, Image.SCALE_SMOOTH);
-
-        // Add image to a label in the new window
         JLabel imageLabel = new JLabel(new ImageIcon(scaledImage));
-
         imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-        imageFrame.getContentPane()
-                .add(imageLabel);
+        JButton saveBtn = SaveButton(ditherred, droppedFile.getName());
+
+        imageFrame.getContentPane().add(imageLabel, java.awt.BorderLayout.CENTER);
+        imageFrame.getContentPane().add(saveBtn, java.awt.BorderLayout.SOUTH);
         imageFrame.pack();
-        imageFrame.setLocationRelativeTo(null); // Center on screen
+        imageFrame.setLocationRelativeTo(null);
         imageFrame.setVisible(true);
     }
 
@@ -292,6 +286,56 @@ public class DitherProj {
                 errB[y + 1][x - dir] += eB * (1.0 / 16);
             }
         }
+    }
+
+    private static JButton SaveButton(BufferedImage dithered, String filename) {
+
+        JButton saveBtn = new JButton("Save Image");
+        saveBtn.setBackground(Color.DARK_GRAY);
+        saveBtn.setForeground(Color.WHITE);
+        saveBtn.setOpaque(true);
+        saveBtn.setBorderPainted(false);
+        saveBtn.setFocusPainted(false);
+
+        saveBtn.addActionListener(e -> {
+            javax.swing.JFileChooser fileChooser = new javax.swing.JFileChooser();
+
+            // Restrict file types shown and selectable
+            javax.swing.filechooser.FileNameExtensionFilter filter
+                    = new javax.swing.filechooser.FileNameExtensionFilter(
+                            "Image Files (*.png, *.jpg, *.bmp)", "png", "jpg", "bmp");
+            fileChooser.setFileFilter(filter);
+            fileChooser.setAcceptAllFileFilterUsed(false); // remove "All Files" option
+            fileChooser.setSelectedFile(new File("dithered_" + filename));
+
+            if (fileChooser.showSaveDialog(null) == javax.swing.JFileChooser.APPROVE_OPTION) {
+                File saveFile = fileChooser.getSelectedFile();
+                String saveName = saveFile.getName().toLowerCase();
+
+                // Determine format, default to png if no valid extension typed
+                String format;
+                if (saveName.endsWith(".jpg")) {
+                    format = "jpg";
+                } else if (saveName.endsWith(".bmp")) {
+                    format = "bmp";
+                } else {
+                    format = "png";
+                    // Append .png if no recognized extension
+                    if (!saveName.endsWith(".png")) {
+                        saveFile = new File(saveFile.getAbsolutePath() + ".png");
+                    }
+                }
+
+                try {
+                    ImageIO.write(dithered, format, saveFile);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
+
+        return saveBtn;
+
     }
 
 }
