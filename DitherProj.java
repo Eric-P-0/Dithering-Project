@@ -5,6 +5,7 @@ import java.awt.Image;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.nio.BufferOverflowException;
 import java.util.List;
 
 import javax.imageio.ImageIO;
@@ -86,8 +87,7 @@ public class DitherProj {
             public boolean importData(TransferSupport support) {
                 try {
                     // Extract the list of files
-                    List<File> files = (List<File>) support.getTransferable()
-                            .getTransferData(DataFlavor.javaFileListFlavor);
+                    List<File> files = (List<File>) support.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
 
                     if (!files.isEmpty()) {
                         File droppedFile = files.get(0);
@@ -115,13 +115,53 @@ public class DitherProj {
         File file = new File(droppedFile.getAbsolutePath());
         BufferedImage image = ImageIO.read(file);
 
-        int width = image.getWidth();
-        int height = image.getHeight();
-
+        long startTime = System.nanoTime();
+       
+        
         // Convert to greyscale first
-        BufferedImage grey = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
+        BufferedImage dithered = floydSteinbergDither(ConvertToGreyscale(image));
+        PostWindowBuild(droppedFile, dithered);
+        
+        long endTime = System.nanoTime();
+
+        double elapsedTimeMS = (endTime -startTime) / 1_000_000.0;
+
+         label.setText(DisplayMetadata(file, image, elapsedTimeMS));
+
+
+    }
+   
+
+    private static void imageProcessing(File droppedFile, JLabel label) throws Exception {
+        File file = new File(droppedFile.getAbsolutePath());
+        BufferedImage image = ImageIO.read(file);
+ long startTime = System.nanoTime();
+       
+
+       
+        BufferedImage ditherred = floydSteinbergDither(image);
+        PostWindowBuild(droppedFile, ditherred);
+
+         long endTime = System.nanoTime();
+
+        double elapsedTimeMS = (endTime -startTime) / 1_000_000.0;
+
+         label.setText(DisplayMetadata(file, image, elapsedTimeMS));
+
+    }
+     private static String DisplayMetadata(File file, BufferedImage image, double time)
+    {
+        long fileSizeInBytes = file.length();
+        double fileSizeInKB = fileSizeInBytes / 1024.0;
+      
+
+        return ("<html><br>" +file.getAbsolutePath()+ "</br> <br>Size(kbs): " + fileSizeInKB +"</br><br> "+ "width: " + image.getWidth() + "</br><br> height: "+ image.getHeight()+"</br><br> Processing Time(s): " +time/1000+ "</br></html>");
+    }
+private static BufferedImage ConvertToGreyscale( BufferedImage image)
+{
+      BufferedImage grey = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
+        for (int y = 0; y < image.getHeight(); y++) {
+            for (int x = 0; x < image.getWidth(); x++) {
                 int rgb = image.getRGB(x, y);
                 int r = (rgb >> 16) & 0xFF;
                 int g = (rgb >> 8) & 0xFF;
@@ -132,19 +172,18 @@ public class DitherProj {
                 grey.setRGB(x, y, greyPixel);
             }
         }
-
-        BufferedImage dithered = floydSteinbergDither(grey);
-
-        label.setText("Image Loaded (B&W): " + width + "x" + height);
-
+        return grey;
+}
+    private static void PostWindowBuild(File droppedFile, BufferedImage dithered)
+    {
         JFrame imageFrame = new JFrame("B&W Preview - " + droppedFile.getName());
         imageFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         imageFrame.getContentPane().setBackground(Color.BLACK);
         imageFrame.setLayout(new java.awt.BorderLayout());
 
         int maxWidth = 800, maxHeight = 600;
-        double scale = Math.min(1.0, Math.min((double) maxWidth / width, (double) maxHeight / height));
-        Image scaledImage = dithered.getScaledInstance((int) (width * scale), (int) (height * scale), Image.SCALE_SMOOTH);
+        double scale = Math.min(1.0, Math.min((double) maxWidth / dithered.getWidth(), (double) maxHeight / dithered.getHeight()));
+        Image scaledImage = dithered.getScaledInstance((int) (dithered.getWidth() * scale), (int) (dithered.getHeight() * scale), Image.SCALE_SMOOTH);
 
         JLabel imageLabel = new JLabel(new ImageIcon(scaledImage));
         imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
@@ -156,39 +195,8 @@ public class DitherProj {
         imageFrame.pack();
         imageFrame.setLocationRelativeTo(null);
         imageFrame.setVisible(true);
-
     }
 
-    private static void imageProcessing(File droppedFile, JLabel label) throws Exception {
-        File file = new File(droppedFile.getAbsolutePath());
-        BufferedImage image = ImageIO.read(file);
-
-        int width = image.getWidth();
-        int height = image.getHeight();
-
-        label.setText("Image Loaded: " + width + "x" + height);
-
-        BufferedImage ditherred = floydSteinbergDither(image);
-        JFrame imageFrame = new JFrame("Image Preview - " + droppedFile.getName());
-        imageFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        imageFrame.getContentPane().setBackground(Color.BLACK);
-        imageFrame.setLayout(new java.awt.BorderLayout());
-
-        int maxWidth = 800, maxHeight = 600;
-        double scale = Math.min(1.0, Math.min((double) maxWidth / width, (double) maxHeight / height));
-        Image scaledImage = ditherred.getScaledInstance((int) (width * scale), (int) (height * scale), Image.SCALE_SMOOTH);
-
-        JLabel imageLabel = new JLabel(new ImageIcon(scaledImage));
-        imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
-
-        JButton saveBtn = SaveButton(ditherred, droppedFile.getName());
-
-        imageFrame.getContentPane().add(imageLabel, java.awt.BorderLayout.CENTER);
-        imageFrame.getContentPane().add(saveBtn, java.awt.BorderLayout.SOUTH);
-        imageFrame.pack();
-        imageFrame.setLocationRelativeTo(null);
-        imageFrame.setVisible(true);
-    }
 
     private static BufferedImage floydSteinbergDither(BufferedImage image) {
 
