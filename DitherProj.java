@@ -5,9 +5,7 @@ import java.awt.Image;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.nio.BufferOverflowException;
 import java.util.List;
-
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -116,50 +114,44 @@ public class DitherProj {
         BufferedImage image = ImageIO.read(file);
 
         long startTime = System.nanoTime();
-       
-        
+
         // Convert to greyscale first
         BufferedImage dithered = floydSteinbergDither(ConvertToGreyscale(image));
         PostWindowBuild(droppedFile, dithered);
-        
+
         long endTime = System.nanoTime();
 
-        double elapsedTimeMS = (endTime -startTime) / 1_000_000.0;
+        double elapsedTimeMS = (endTime - startTime) / 1_000_000.0;
 
-         label.setText(DisplayMetadata(file, image, elapsedTimeMS));
-
+        label.setText(DisplayMetadata(file, image, elapsedTimeMS));
 
     }
-   
 
     private static void imageProcessing(File droppedFile, JLabel label) throws Exception {
         File file = new File(droppedFile.getAbsolutePath());
         BufferedImage image = ImageIO.read(file);
- long startTime = System.nanoTime();
-       
+        long startTime = System.nanoTime();
 
-       
         BufferedImage ditherred = floydSteinbergDither(image);
         PostWindowBuild(droppedFile, ditherred);
 
-         long endTime = System.nanoTime();
+        long endTime = System.nanoTime();
 
-        double elapsedTimeMS = (endTime -startTime) / 1_000_000.0;
+        double elapsedTimeMS = (endTime - startTime) / 1_000_000.0;
 
-         label.setText(DisplayMetadata(file, image, elapsedTimeMS));
+        label.setText(DisplayMetadata(file, image, elapsedTimeMS));
 
     }
-     private static String DisplayMetadata(File file, BufferedImage image, double time)
-    {
+
+    private static String DisplayMetadata(File file, BufferedImage image, double time) {
         long fileSizeInBytes = file.length();
         double fileSizeInKB = fileSizeInBytes / 1024.0;
-      
 
-        return ("<html><br>" +file.getAbsolutePath()+ "</br> <br>Size(kbs): " + fileSizeInKB +"</br><br> "+ "width: " + image.getWidth() + "</br><br> height: "+ image.getHeight()+"</br><br> Processing Time(s): " +time/1000+ "</br></html>");
+        return ("<html><br>" + file.getAbsolutePath() + "</br> <br>Size(kbs): " + fileSizeInKB + "</br><br> " + "width: " + image.getWidth() + "</br><br> height: " + image.getHeight() + "</br><br> Processing Time(s): " + time / 1000 + "</br></html>");
     }
-private static BufferedImage ConvertToGreyscale( BufferedImage image)
-{
-      BufferedImage grey = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
+
+    private static BufferedImage ConvertToGreyscale(BufferedImage image) {
+        BufferedImage grey = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
         for (int y = 0; y < image.getHeight(); y++) {
             for (int x = 0; x < image.getWidth(); x++) {
                 int rgb = image.getRGB(x, y);
@@ -173,9 +165,9 @@ private static BufferedImage ConvertToGreyscale( BufferedImage image)
             }
         }
         return grey;
-}
-    private static void PostWindowBuild(File droppedFile, BufferedImage dithered)
-    {
+    }
+
+    private static void PostWindowBuild(File droppedFile, BufferedImage dithered) {
         JFrame imageFrame = new JFrame("B&W Preview - " + droppedFile.getName());
         imageFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         imageFrame.getContentPane().setBackground(Color.BLACK);
@@ -197,7 +189,6 @@ private static BufferedImage ConvertToGreyscale( BufferedImage image)
         imageFrame.setVisible(true);
     }
 
-
     private static BufferedImage floydSteinbergDither(BufferedImage image) {
 
         int width = image.getWidth();
@@ -211,6 +202,10 @@ private static BufferedImage ConvertToGreyscale( BufferedImage image)
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 int rgb = image.getRGB(x, y);
+
+                //bitwise operation extracting each channel by shifting its value to the end of the binary numner then extracting it.
+                // 0xFF is removing the alpha bits
+                // so red removes 16 bits to right and alpha bit, green removes 8 bits to right and alpha, blue just removes alpha since it takes the last position already
                 errR[y][x] = (rgb >> 16) & 0xFF;
                 errG[y][x] = (rgb >> 8) & 0xFF;
                 errB[y][x] = rgb & 0xFF;
