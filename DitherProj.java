@@ -6,6 +6,7 @@ import java.awt.datatransfer.DataFlavor;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.List;
+
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -146,7 +147,7 @@ public class DitherProj {
     private static String DisplayMetadata(File file, BufferedImage image, double time) {
         long fileSizeInBytes = file.length();
         double fileSizeInKB = fileSizeInBytes / 1024.0;
-
+//innstead get file name not location
         return ("<html><br>" + file.getAbsolutePath() + "</br> <br>Size(kbs): " + fileSizeInKB + "</br><br> " + "width: " + image.getWidth() + "</br><br> height: " + image.getHeight() + "</br><br> Processing Time(s): " + time / 1000 + "</br></html>");
     }
 
